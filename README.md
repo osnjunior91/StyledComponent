@@ -1,68 +1,229 @@
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# React — Creating Customizable CSS with Styled Components
 
-## Available Scripts
+> A practical introduction to dynamic styling in React using **styled-components**.
+>
+> Originally published on [LinkedIn on July 10, 2019](https://www.linkedin.com/pulse/reactjs-criando-css-customiz%C3%A1vel-para-sua-aplica%C3%A7%C3%A3o-nicacio-junior/) by **Oswaldo da Silva Nicacio Junior**.
 
-In the project directory, you can run:
+## Overview
 
-### `npm start`
+Modern web applications often need flexible interfaces: colors, widths, fonts, and other visual properties may change according to user preferences or application state. One approach is to maintain several CSS classes; another is to define **reusable components whose styles depend on props**.
 
-Runs the app in the development mode.<br>
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+This tutorial demonstrates the second approach with React and the [`styled-components`](https://styled-components.com/) library. We will build a simple form that accepts a background color and width, then renders a box using those values.
 
-The page will reload if you make edits.<br>
-You will also see any lint errors in the console.
+## Why styled-components?
 
-### `npm test`
+`styled-components` lets you write CSS in JavaScript and attach it to React components. Benefits include:
 
-Launches the test runner in the interactive watch mode.<br>
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- **Dynamic styling:** compute CSS values from component props.
+- **Maintainability:** keep styles close to the components that use them.
+- **Scoped class names:** generated class names help prevent accidental CSS collisions.
+- **Reusability:** use the same styled component with different configurations.
 
-### `npm run build`
+## Getting started
 
-Builds the app for production to the `build` folder.<br>
-It correctly bundles React in production mode and optimizes the build for the best performance.
+In an existing React application, install the dependency:
 
-The build is minified and the filenames include the hashes.<br>
-Your app is ready to be deployed!
+```bash
+npm install styled-components
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+> **Historical note:** The original article (2019) uses React class components and `this.setState`. The examples below preserve that teaching approach with small corrections. Modern React projects commonly use function components and hooks instead.
 
-### `npm run eject`
+## 1. Create the base CSS
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Create `src/App.css`:
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```css
+.App {
+  text-align: center;
+  margin-top: 150px;
+}
 
-Instead, it will copy all the configuration files and the transitive dependencies (Webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+.Color,
+.Width {
+  padding: 5px;
+}
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+form {
+  margin: 0 auto;
+  width: 400px;
+  max-width: 90%;
+  padding: 1em;
+  border: 1px solid #ccc;
+  border-radius: 1em;
+}
 
-## Learn More
+label {
+  display: inline-block;
+  width: 90px;
+  text-align: right;
+}
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+input {
+  padding: 2px;
+  font: 1em sans-serif;
+  width: 300px;
+  max-width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #999;
+}
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+.Action {
+  padding-left: 90px;
+}
+```
 
-### Code Splitting
+The form uses ordinary CSS; the customizable box will use `styled-components`.
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/code-splitting
+## 2. Define a styled component
 
-### Analyzing the Bundle Size
+Create `src/style.js`:
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size
+```jsx
+import styled from 'styled-components';
 
-### Making a Progressive Web App
+export const Container = styled.div`
+  margin: 100px auto;
+  border: 1px solid #ccc;
+  border-radius: 1em;
+  background-color: ${({ color }) => color};
+  width: ${({ width }) => width}px;
+  height: 200px;
+`;
+```
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app
+The `${...}` expressions read the `color` and `width` props. For example, `<Container color="#00aaff" width={400} />` renders a 400-pixel-wide box with a blue background.
 
-### Advanced Configuration
+## 3. Build the interactive form
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/advanced-configuration
+Create or update `src/App.js`:
 
-### Deployment
+```jsx
+import React, { Component } from 'react';
+import { Container } from './style';
+import './App.css';
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/deployment
+export default class App extends Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      color: '#00aaff',
+      width: '400',
+      appliedColor: null,
+      appliedWidth: null,
+    };
+    this.alterDiv = this.alterDiv.bind(this);
+  }
 
-### `npm run build` fails to minify
+  alterDiv(event) {
+    event.preventDefault();
 
-This section has moved here: https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify
+    const { color, width } = this.state;
+    const parsedWidth = Number(width);
+
+    if (!/^#[0-9a-fA-F]{6}$/.test(color)) {
+      alert('Enter a six-digit hex color, e.g. #00aaff');
+      return;
+    }
+
+    if (!Number.isFinite(parsedWidth) || parsedWidth <= 0) {
+      alert('Enter a positive width in pixels');
+      return;
+    }
+
+    this.setState({
+      appliedColor: color,
+      appliedWidth: parsedWidth,
+    });
+  }
+
+  render() {
+    const { color, width, appliedColor, appliedWidth } = this.state;
+
+    return (
+      <div className="App">
+        <form onSubmit={this.alterDiv}>
+          <div className="Color">
+            <label htmlFor="color">Box color:</label>
+            <input
+              id="color"
+              type="text"
+              value={color}
+              onChange={(event) => this.setState({ color: event.target.value })}
+              placeholder="#00aaff"
+            />
+          </div>
+          <div className="Width">
+            <label htmlFor="width">Width (px):</label>
+            <input
+              id="width"
+              type="number"
+              min="1"
+              value={width}
+              onChange={(event) => this.setState({ width: event.target.value })}
+            />
+          </div>
+          <div className="Action">
+            <button type="submit">Change style</button>
+          </div>
+        </form>
+
+        {appliedColor !== null && (
+          <Container color={appliedColor} width={appliedWidth} />
+        )}
+      </div>
+    );
+  }
+}
+```
+
+### How it works
+
+1. The form updates React state as the user types.
+2. Submitting the form prevents the browser's default page reload.
+3. The handler validates the inputs and saves the applied values in state.
+4. React re-renders the component, passing the new values to `Container`.
+5. `styled-components` generates the corresponding CSS.
+
+The original example stored a React element directly in state (`div: <Container ... />`). This version instead stores **data** in state and renders the element declaratively, which is easier to maintain.
+
+## 4. Try it
+
+Enter the following values and click **Change style**:
+
+| Setting | Example |
+| --- | --- |
+| Box color | `#00aaff` |
+| Width | `400` pixels |
+
+Try a different hex color or width and submit again. The same component will render with the new styles.
+
+## Key React concepts
+
+**State and rendering:** `setState` schedules a state update, which causes React to render the component again. It is better to store the values needed for rendering than to store the rendered JSX itself.
+
+**Controlled inputs:** an input's `value` is read from state, while its `onChange` handler updates that state.
+
+**Method binding:** class component methods used as event handlers may need binding in the constructor (`this.alterDiv = this.alterDiv.bind(this)`). Function components with hooks generally avoid this pattern.
+
+## Project structure
+
+```text
+src/
+├── App.css
+├── App.js
+├── style.js
+└── index.js
+```
+
+## Conclusion
+
+With `styled-components`, we can customize a React component by passing values through props instead of creating a separate CSS class for every variation. This example changes the background color and width, but the same idea applies to spacing, typography, borders, and other style properties.
+
+This README is an English adaptation of my 2019 tutorial, with minor code corrections and explanatory updates.
+
+## Original article and author
+
+- **Author:** [Oswaldo da Silva Nicacio Junior](https://www.linkedin.com/in/oswaldodasilvanicaciojunior/)
+- **Original article (Portuguese):** [React — Criando CSS customizável para sua aplicação](https://www.linkedin.com/pulse/reactjs-criando-css-customiz%C3%A1vel-para-sua-aplica%C3%A7%C3%A3o-nicacio-junior/)
+- **Published:** July 10, 2019
